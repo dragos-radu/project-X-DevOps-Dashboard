@@ -1,0 +1,33 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    image: devops-dashboard-backend:local
+    container_name: devops-dashboard-backend
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=devops_dashboard
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST=database
+      - POSTGRES_PORT=5432
+    ports:
+      - "8001:8000"
+    depends_on:
+      - database
+
+  database:
+    image: postgres:16
+    container_name: devops-dashboard-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: devops_dashboard
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - devops_dashboard_db_data:/var/lib/postgresql/data
+
+volumes:
+  devops_dashboard_db_data:

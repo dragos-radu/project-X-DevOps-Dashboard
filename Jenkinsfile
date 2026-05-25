@@ -3,6 +3,12 @@ pipeline {
         label 'raspberry-pi'
     }
 
+    environment {
+        POSTGRES_DB = 'devops_dashboard'
+        POSTGRES_HOST = '127.0.0.1'
+        POSTGRES_PORT = '5432'
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -19,22 +25,27 @@ pipeline {
             }
         }
 
-        stage('Test Backend Docker Container') {
+        stage('Test Backend with Database') {
             steps {
-                sh '''
-                    docker rm -f devops-dashboard-backend-test || true
+                withCredentials([usernamePassword(
+                    credentialsId: 'devops-dashboard-db-creds',
+                    usernameVariable: 'POSTGRES_USER',
+                    passwordVariable: 'POSTGRES_PASSWORD'
+                )]) {
+                    sh '''
+                        export POSTGRES_DB=devops_dashboard
 
-                    docker run -d \
-                        --name devops-dashboard-backend-test \
-                        -p 8000:8000 \
-                        devops-dashboard-backend:local
+                        docker compose down -v || true
+                        docker compose up -d --build backend database
 
-                    sleep 5
+                        echo "Waiting for services..."
+                        sleep 10
 
-                    curl -f http://localhost:8000/health
+                        curl -f http://localhost:8001/health
 
-                    docker rm -f devops-dashboard-backend-test
-                '''
+                        docker compose down -v
+                    '''
+                }
             }
         }
     }
