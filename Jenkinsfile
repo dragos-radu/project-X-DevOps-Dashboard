@@ -10,36 +10,30 @@ pipeline {
             }
         }
 
-        stage('Agent Info') {
+        stage('Build Backend Docker Image') {
             steps {
                 sh '''
-                    echo "Running on Jenkins agent:"
-                    hostname
-                    whoami
-                    pwd
+                    docker build -t devops-dashboard-backend:${BUILD_NUMBER} backend
+                    docker tag devops-dashboard-backend:${BUILD_NUMBER} devops-dashboard-backend:local
                 '''
             }
         }
 
-        stage('Check Tools') {
+        stage('Test Backend Docker Container') {
             steps {
                 sh '''
-                    git --version
-                    python3 --version
-                    pip3 --version || true
-                '''
-            }
-        }
+                    docker rm -f devops-dashboard-backend-test || true
 
-        stage('Backend Dependency Check') {
-            steps {
-                sh '''
-                    cd backend
-                    python3 -m venv .venv
-                    . .venv/bin/activate
-                    pip install --upgrade pip
-                    pip install -r requirements.txt
-                    python -c "from app.main import app; print('Backend import OK')"
+                    docker run -d \
+                        --name devops-dashboard-backend-test \
+                        -p 8000:8000 \
+                        devops-dashboard-backend:local
+
+                    sleep 5
+
+                    curl -f http://localhost:8000/health
+
+                    docker rm -f devops-dashboard-backend-test
                 '''
             }
         }
