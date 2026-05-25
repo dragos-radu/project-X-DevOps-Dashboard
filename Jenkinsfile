@@ -25,9 +25,8 @@ pipeline {
             }
         }
 
-        stage('Test Backend Docker Container') {
+        stage('Test Backend with Database') {
             steps {
-
                 withCredentials([usernamePassword(
                     credentialsId: 'devops-dashboard-db-creds',
                     usernameVariable: 'POSTGRES_USER',
@@ -35,27 +34,18 @@ pipeline {
                 )]) {
                     sh '''
                         export POSTGRES_DB=devops_dashboard
-                        export POSTGRES_HOST=127.0.0.1
-                        export POSTGRES_PORT=5432
 
-                        docker compose up -d database
+                        docker compose down -v || true
+                        docker compose up -d --build backend database
+
+                        echo "Waiting for services..."
+                        sleep 10
+
+                        curl -f http://localhost:8001/health
+
+                        docker compose down -v
                     '''
                 }
-                sh '''
-                    docker rm -f devops-dashboard-backend-test || true
-
-                    docker run -d \
-                        --name devops-dashboard-backend-test \
-                        -p 8000:8000 \
-                        devops-dashboard-backend:local
-
-                    sleep 5
-
-                    curl -f http://localhost:8000/health
-
-                    docker rm -f devops-dashboard-backend-test
-                    docker compose down
-                '''
             }
         }
     }
