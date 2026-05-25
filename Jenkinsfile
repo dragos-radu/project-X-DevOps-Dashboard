@@ -10,8 +10,11 @@ pipeline {
 
         KUBECONFIG = '/home/jenkins/.kube/config'
 
-        BACKEND_IMAGE = 'devops-dashboard-backend'
-        BACKEND_TAG = 'local'
+        REGISTRY = 'ghcr.io'
+        GITHUB_OWNER = 'dragos-radu'
+        BACKEND_IMAGE_NAME = 'devops-dashboard-backend'
+        BACKEND_IMAGE = "${REGISTRY}/${GITHUB_OWNER}/${BACKEND_IMAGE_NAME}"
+        BACKEND_TAG = "${BUILD_NUMBER}"
 
         K8S_NAMESPACE = 'devops-dashboard'
     }
@@ -26,9 +29,26 @@ pipeline {
         stage('Build Backend Docker Image') {
             steps {
                 sh '''
-                    docker build -t ${BACKEND_IMAGE}:${BUILD_NUMBER} backend
-                    docker tag ${BACKEND_IMAGE}:${BUILD_NUMBER} ${BACKEND_IMAGE}:${BACKEND_TAG}
+                    docker build -t ${BACKEND_IMAGE}:${BACKEND_TAG} backend
+                    docker tag ${BACKEND_IMAGE}:${BACKEND_TAG} ${BACKEND_IMAGE}:latest
                 '''
+            }
+        }
+
+        stage('Push Backend Image to GHCR') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-token',
+                    usernameVariable: 'GHCR_USER',
+                    passwordVariable: 'GHCR_TOKEN'
+                )]) {
+                    sh '''
+                        echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+                        docker push ${BACKEND_IMAGE}:${BACKEND_TAG}
+                        docker push ${BACKEND_IMAGE}:latest
+                    '''
+                }
             }
         }
 
@@ -52,15 +72,6 @@ pipeline {
                         docker compose down -v
                     '''
                 }
-            }
-        }
-
-        stage('Import Backend Image into k3s') {
-            steps {
-                sh '''
-                    docker save ${BACKEND_IMAGE}:${BACKEND_TAG} | sudo /usr/local/bin/k3s ctr images import -
-                    sudo /usr/local/bin/k3s ctr images list | grep ${BACKEND_IMAGE}
-                '''
             }
         }
 
@@ -88,6 +99,28 @@ pipeline {
             }
         }
 
+        stage('Create or Update GHCR Pull Secret') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-token',
+                    usernameVariable: 'GHCR_USER',
+                    passwordVariable: 'GHCR_TOKEN'
+                )]) {
+                    sh '''
+                        kubectl delete secret ghcr-secret \
+                            -n ${K8S_NAMESPACE} \
+                            --ignore-not-found
+
+                        kubectl create secret docker-registry ghcr-secret \
+                            -n ${K8S_NAMESPACE} \
+                            --docker-server=ghcr.io \
+                            --docker-username=${GHCR_USER} \
+                            --docker-password=${GHCR_TOKEN}
+                    '''
+                }
+            }
+        }
+
         stage('Deploy to k3s') {
             steps {
                 sh '''
@@ -96,6 +129,10 @@ pipeline {
                     kubectl apply -f k8s/database-service.yaml
                     kubectl apply -f k8s/backend-deployment.yaml
                     kubectl apply -f k8s/backend-service.yaml
+
+                    kubectl set image deployment/backend \
+                        backend=${BACKEND_IMAGE}:${BACKEND_TAG} \
+                        -n ${K8S_NAMESPACE}
                 '''
             }
         }
@@ -112,13 +149,20 @@ pipeline {
         stage('Health Check k3s Backend') {
             steps {
                 sh '''
-                    echo "Checking backend health through NodePort..."
-                    sleep 5
-                    kubectl get pods -n devops-dashboard -o wide
-                    kubectl get svc -n devops-dashboard
-                    kubectl logs -n devops-dashboard deployment/backend --tail=50
-                    kubectl logs -n devops-dashboard deployment/database --tail=80
-                    curl -f http://localhost:30080/health
+                    echo "Waiting for backend health with database ok..."
+
+                    for i in $(seq 1 30); do
+                        RESPONSE=$(curl -s http://localhost:30080/health || true)
+                        echo "$RESPONSE"
+
+                        echo "$RESPONSE" | grep '"database":"ok"' && exit 0
+
+                        echo "Backend or database not ready yet. Retry $i/30..."
+                        sleep 3
+                    done
+
+                    echo "Backend health check failed"
+                    exit 1
                 '''
             }
         }

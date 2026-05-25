@@ -13,12 +13,14 @@ spec:
       labels:
         app: backend
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
         - name: backend
-          image: devops-dashboard-backend:local
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/dragos-radu/devops-dashboard-backend:latest
+          imagePullPolicy: Always
           ports:
-            - containerPort: 8080
+            - containerPort: 8000
           env:
             - name: POSTGRES_HOST
               value: database
