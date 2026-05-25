@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 
+from app.database import check_database_connection
+
 app = FastAPI(
     title="DevOps Dashboard Backend",
     description="Backend API for the Raspberry Pi DevOps Dashboard.",
@@ -9,9 +11,12 @@ app = FastAPI(
 
 @app.get("/health")
 def health_check():
+    database_status = "ok" if check_database_connection() else "unavailable"
+
     return {
         "status": "ok",
         "service": "devops-dashboard-backend",
+        "database": database_status,
     }
 
 
