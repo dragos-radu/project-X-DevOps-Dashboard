@@ -58,6 +58,14 @@ pipeline {
                         curl -f http://localhost:8001/metrics/system
                         echo ""
 
+                        echo "Refreshing news from RSS feeds..."
+                        curl -f -X POST http://localhost:8001/news/refresh
+                        echo ""
+
+                        echo "Checking news list endpoint..."
+                        curl -f http://localhost:8001/news
+                        echo ""
+
                         docker compose down -v
                     '''
                 }
