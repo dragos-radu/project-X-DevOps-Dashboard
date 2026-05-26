@@ -27,6 +27,24 @@ pipeline {
         }
 
         stage('Build Backend Docker Image') {
+            when {
+                anyOf {
+                    allOf {
+                        branch 'master'
+                        anyOf {
+                            changeset "backend/**"
+                            changeset "docker-compose.yml"
+                        }
+                    }
+                    allOf {
+                        changeRequest target: 'master'
+                        anyOf {
+                            changeset "backend/**"
+                            changeset "docker-compose.yml"
+                        }
+                    }
+                }
+            }
             steps {
                 sh '''
                     docker build -t ${BACKEND_IMAGE}:${BACKEND_TAG} backend
@@ -35,24 +53,25 @@ pipeline {
             }
         }
 
-        stage('Push Backend Image to GHCR') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'github-token',
-                    usernameVariable: 'GHCR_USER',
-                    passwordVariable: 'GHCR_TOKEN'
-                )]) {
-                    sh '''
-                        echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-
-                        docker push ${BACKEND_IMAGE}:${BACKEND_TAG}
-                        docker push ${BACKEND_IMAGE}:latest
-                    '''
+        stage('Test Backend with Database using Docker Compose') {
+            when {
+                anyOf {
+                    allOf {
+                        branch 'master'
+                        anyOf {
+                            changeset "backend/**"
+                            changeset "docker-compose.yml"
+                        }
+                    }
+                    allOf {
+                        changeRequest target: 'master'
+                        anyOf {
+                            changeset "backend/**"
+                            changeset "docker-compose.yml"
+                        }
+                    }
                 }
             }
-        }
-
-        stage('Test Backend with Database using Docker Compose') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'devops-dashboard-db-creds',
@@ -75,7 +94,43 @@ pipeline {
             }
         }
 
+        stage('Push Backend Image to GHCR') {
+            when {
+                allOf {
+                    branch 'master'
+                    anyOf {
+                        changeset "backend/**"
+                        changeset "docker-compose.yml"
+                    }
+                }
+            }
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-token',
+                    usernameVariable: 'GHCR_USER',
+                    passwordVariable: 'GHCR_TOKEN'
+                )]) {
+                    sh '''
+                        echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+                        docker push ${BACKEND_IMAGE}:${BACKEND_TAG}
+                        docker push ${BACKEND_IMAGE}:latest
+                    '''
+                }
+            }
+        }
+
         stage('Create or Update Kubernetes Database Secret') {
+            when {
+                allOf {
+                    branch 'master'
+                    anyOf {
+                        changeset "backend/**"
+                        changeset "k8s/**"
+                        changeset "docker-compose.yml"
+                    }
+                }
+            }
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'devops-dashboard-db-creds',
@@ -100,6 +155,16 @@ pipeline {
         }
 
         stage('Create or Update GHCR Pull Secret') {
+            when {
+                allOf {
+                    branch 'master'
+                    anyOf {
+                        changeset "backend/**"
+                        changeset "k8s/**"
+                        changeset "docker-compose.yml"
+                    }
+                }
+            }
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'github-token',
@@ -122,6 +187,16 @@ pipeline {
         }
 
         stage('Deploy to k3s') {
+            when {
+                allOf {
+                    branch 'master'
+                    anyOf {
+                        changeset "backend/**"
+                        changeset "k8s/**"
+                        changeset "docker-compose.yml"
+                    }
+                }
+            }
             steps {
                 sh '''
                     kubectl apply -f k8s/database-pvc.yaml
@@ -138,6 +213,16 @@ pipeline {
         }
 
         stage('Wait for Kubernetes Rollout') {
+            when {
+                allOf {
+                    branch 'master'
+                    anyOf {
+                        changeset "backend/**"
+                        changeset "k8s/**"
+                        changeset "docker-compose.yml"
+                    }
+                }
+            }
             steps {
                 sh '''
                     kubectl rollout status deployment/database -n ${K8S_NAMESPACE} --timeout=120s
@@ -147,6 +232,16 @@ pipeline {
         }
 
         stage('Health Check k3s Backend') {
+            when {
+                allOf {
+                    branch 'master'
+                    anyOf {
+                        changeset "backend/**"
+                        changeset "k8s/**"
+                        changeset "docker-compose.yml"
+                    }
+                }
+            }
             steps {
                 sh '''
                     echo "Waiting for backend health with database ok..."
@@ -166,11 +261,103 @@ pipeline {
                 '''
             }
         }
+
+        stage('Validate Frontend') {
+            when {
+                anyOf {
+                    allOf {
+                        branch 'master'
+                        anyOf {
+                            changeset "frontend/**"
+                            changeset "scripts/**"
+                        }
+                    }
+                    allOf {
+                        changeRequest target: 'master'
+                        anyOf {
+                            changeset "frontend/**"
+                            changeset "scripts/**"
+                        }
+                    }
+                }
+            }
+            steps {
+                sh '''
+                    test -f frontend/main.py
+                    test -f frontend/requirements.txt
+                    test -d frontend/qml
+
+                    cd frontend
+                    python3 -m venv .venv
+                    . .venv/bin/activate
+                    pip install -r requirements.txt
+                    python -m py_compile main.py
+                '''
+            }
+        }
+
+        stage('Deploy PySide6 QML Frontend') {
+            when {
+                allOf {
+                    branch 'master'
+                    anyOf {
+                        changeset "frontend/**"
+                        changeset "scripts/**"
+                    }
+                }
+            }
+            steps {
+                sh '''
+                    echo "Deploying PySide6 QML frontend..."
+
+                    rm -rf /opt/devops-dashboard-ui/*
+                    cp -r frontend/* /opt/devops-dashboard-ui/
+
+                    cd /opt/devops-dashboard-ui
+
+                    python3 -m venv .venv
+                    . .venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                '''
+            }
+        }
+
+        stage('Configure and Restart Frontend Service') {
+            when {
+                allOf {
+                    branch 'master'
+                    anyOf {
+                        changeset "frontend/**"
+                        changeset "scripts/**"
+                    }
+                }
+            }
+            steps {
+                sh '''
+                    cd /opt/devops-dashboard-ui
+
+                    sudo -n /usr/bin/cp scripts/devops-dashboard-ui.service /etc/systemd/system/devops-dashboard-ui.service
+
+                    sudo -n /usr/bin/systemctl daemon-reload
+                    sudo -n /usr/bin/systemctl enable devops-dashboard-ui.service
+                    sudo -n /usr/bin/systemctl restart devops-dashboard-ui.service
+
+                    sleep 5
+
+                    sudo -n /usr/bin/systemctl is-active --quiet devops-dashboard-ui.service || {
+                        sudo -n /usr/bin/systemctl status devops-dashboard-ui.service --no-pager || true
+                        sudo -n /usr/bin/journalctl -u devops-dashboard-ui.service -n 80 --no-pager || true
+                        exit 1
+                    }
+                '''
+            }
+        }
     }
 
     post {
         success {
-            echo 'Pipeline completed successfully. Backend and database deployed to k3s.'
+            echo 'Pipeline completed successfully.'
         }
 
         failure {
@@ -185,6 +372,9 @@ pipeline {
 
                 echo "Database logs:"
                 kubectl logs -n ${K8S_NAMESPACE} deployment/database --tail=50 || true
+
+                echo "Frontend service status:"
+                sudo -n /usr/bin/systemctl status devops-dashboard-ui.service --no-pager || true
             '''
         }
     }
