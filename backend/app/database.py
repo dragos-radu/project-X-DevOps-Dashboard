@@ -14,6 +14,10 @@ def get_database_config():
         "port": os.getenv("POSTGRES_PORT")
     }
 
+def get_database_connection():
+    config = get_database_config()
+    return psycopg2.connect(**config)
+
 def check_database_connection():
     config = get_database_config()
     try:
