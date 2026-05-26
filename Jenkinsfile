@@ -27,24 +27,6 @@ pipeline {
         }
 
         stage('Build Backend Docker Image') {
-            when {
-                anyOf {
-                    allOf {
-                        branch 'master'
-                        anyOf {
-                            changeset "backend/**"
-                            changeset "docker-compose.yml"
-                        }
-                    }
-                    allOf {
-                        changeRequest target: 'master'
-                        anyOf {
-                            changeset "backend/**"
-                            changeset "docker-compose.yml"
-                        }
-                    }
-                }
-            }
             steps {
                 sh '''
                     docker build -t ${BACKEND_IMAGE}:${BACKEND_TAG} backend
@@ -54,24 +36,6 @@ pipeline {
         }
 
         stage('Test Backend with Database using Docker Compose') {
-            when {
-                anyOf {
-                    allOf {
-                        branch 'master'
-                        anyOf {
-                            changeset "backend/**"
-                            changeset "docker-compose.yml"
-                        }
-                    }
-                    allOf {
-                        changeRequest target: 'master'
-                        anyOf {
-                            changeset "backend/**"
-                            changeset "docker-compose.yml"
-                        }
-                    }
-                }
-            }
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'devops-dashboard-db-creds',
@@ -86,7 +50,13 @@ pipeline {
                         echo "Waiting for backend and database..."
                         sleep 10
 
+                        echo "Checking backend health..."
                         curl -f http://localhost:8001/health
+                        echo ""
+
+                        echo "Checking system metrics endpoint..."
+                        curl -f http://localhost:8001/metrics/system
+                        echo ""
 
                         docker compose down -v
                     '''
@@ -232,16 +202,6 @@ pipeline {
         }
 
         stage('Health Check k3s Backend') {
-            when {
-                allOf {
-                    branch 'master'
-                    anyOf {
-                        changeset "backend/**"
-                        changeset "k8s/**"
-                        changeset "docker-compose.yml"
-                    }
-                }
-            }
             steps {
                 sh '''
                     echo "Waiting for backend health with database ok..."
@@ -263,24 +223,6 @@ pipeline {
         }
 
         stage('Validate Frontend') {
-            when {
-                anyOf {
-                    allOf {
-                        branch 'master'
-                        anyOf {
-                            changeset "frontend/**"
-                            changeset "scripts/**"
-                        }
-                    }
-                    allOf {
-                        changeRequest target: 'master'
-                        anyOf {
-                            changeset "frontend/**"
-                            changeset "scripts/**"
-                        }
-                    }
-                }
-            }
             steps {
                 sh '''
                     test -f frontend/main.py

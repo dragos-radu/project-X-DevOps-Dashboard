@@ -1,12 +1,15 @@
 from fastapi import FastAPI
 
 from app.database import check_database_connection
+from app.routes.system_metrics import router as system_metrics_router
 
 app = FastAPI(
     title="DevOps Dashboard Backend",
     description="Backend API for the Raspberry Pi DevOps Dashboard.",
     version="0.1.0",
 )
+
+app.include_router(system_metrics_router)
 
 
 @app.get("/health")
