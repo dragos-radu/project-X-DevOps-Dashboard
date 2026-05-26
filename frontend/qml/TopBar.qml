@@ -20,7 +20,7 @@ Rectangle {
             Layout.fillWidth: true
         }
 
-        TopMetric { label: "WiFi"; value: "Connected" }
+        TopMetric { label: "WiFi"; value: "Conns" }
         TopMetric { label: "Temp"; value: "48°C" }
         TopMetric { label: "RAM"; value: "42%" }
         TopMetric { label: "CPU"; value: "15%" }
