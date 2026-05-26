@@ -12,10 +12,11 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 24
-        spacing: 14
+        anchors.margins: 10
+        spacing: 10
 
         TopBar {
+            id: topBar
             Layout.fillWidth: true
             Layout.preferredHeight: root.height * 0.13
         }
@@ -23,7 +24,7 @@ Item {
         RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: 14
+            spacing: 10
 
             Panel {
                 title: "DevOps News"
@@ -36,7 +37,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.preferredWidth: 3
-                spacing: 14
+                spacing: 10
 
                 Panel {
                     title: "CI/CD Pipelines"
@@ -50,6 +51,10 @@ Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.preferredHeight: 3
+
+                    SystemStatusContent {
+                        anchors.fill: parent
+                    }
                 }
             }
 
@@ -57,7 +62,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.preferredWidth: 3
-                spacing: 14
+                spacing: 10
 
                 Panel {
                     title: "Notifications"
