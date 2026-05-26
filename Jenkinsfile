@@ -86,7 +86,13 @@ pipeline {
                         echo "Waiting for backend and database..."
                         sleep 10
 
+                        echo "Checking backend health..."
                         curl -f http://localhost:8001/health
+                        echo ""
+
+                        echo "Checking system metrics endpoint..."
+                        curl -f http://localhost:8001/metrics/system
+                        echo ""
 
                         docker compose down -v
                     '''
