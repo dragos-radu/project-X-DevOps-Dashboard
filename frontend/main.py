@@ -1,17 +1,34 @@
+import os
 import sys
-from pathlib import Path
 
-from PySide6.QtCore import QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 
-app = QGuiApplication(sys.argv)
+from controllers.system_metrics_controller import SystemMetricsController
+from controllers.local_system_info_controller import LocalSystemInfoController
 
-engine = QQmlApplicationEngine()
-qml_file = Path(__file__).resolve().parent / "qml" / "Main.qml"
-engine.load(QUrl.fromLocalFile(str(qml_file)))
 
-if not engine.rootObjects():
-    sys.exit(-1)
+os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 
-sys.exit(app.exec())
+
+def main():
+    app = QGuiApplication(sys.argv)
+
+    engine = QQmlApplicationEngine()
+
+    system_metrics = SystemMetricsController()
+    local_system_info = LocalSystemInfoController()
+
+    engine.rootContext().setContextProperty("systemMetrics", system_metrics)
+    engine.rootContext().setContextProperty("localSystemInfo", local_system_info)
+
+    engine.load("qml/Main.qml")
+
+    if not engine.rootObjects():
+        sys.exit(-1)
+
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()
