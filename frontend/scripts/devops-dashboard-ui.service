@@ -1,7 +1,6 @@
 [Unit]
 Description=DevOps Dashboard PySide6 QML UI - labwc kiosk
-After=systemd-user-sessions.service seatd.service
-Wants=seatd.service
+After=systemd-user-sessions.service
 
 [Service]
 User=dragos
@@ -10,13 +9,15 @@ WorkingDirectory=/opt/devops-dashboard-ui
 PAMName=login
 TTYPath=/dev/tty1
 TTYReset=yes
-TTYVHangup=yes
 StandardInput=tty
 StandardOutput=journal
 StandardError=journal
 
+Environment=HOME=/home/dragos
 Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=XDG_CONFIG_HOME=/home/dragos/.config
 Environment=QT_QPA_PLATFORM=wayland
+Environment=QT_QUICK_CONTROLS_STYLE=Basic
 
 ExecStart=/usr/bin/labwc
 
