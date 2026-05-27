@@ -42,7 +42,7 @@ Rectangle {
             }
 
             Text {
-                text: "Monitor. Automate. Deliver"
+                text: "Monitor. Automate. Deliver."
                 color: "#2a35c8"
                 font.family: "Rajdhani"
                 font.pixelSize: 12
@@ -204,7 +204,7 @@ Rectangle {
                         anchors.centerIn: parent
                         spacing: 3
 
-                        property int signalLevel: 3
+                        property int signalLevel: systemMetrics ? systemMetrics.wifiLevel : 0
                         property color activeColor: "#2a35c8"
                         property color inactiveColor: "#1E293B"
 

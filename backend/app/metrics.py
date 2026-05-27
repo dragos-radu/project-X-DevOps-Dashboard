@@ -31,6 +31,30 @@ def get_temperature_c() -> float | None:
 
     return None
 
+def get_wifi_signal_strength() -> int | None:
+    try:
+        import subprocess
+
+        result = subprocess.run(
+            ["iwconfig", "wlan0"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
+        for line in result.stdout.splitlines():
+            if "Signal level" in line:
+                parts = line.split("Signal level=")
+
+                if len(parts) > 1:
+                    signal_part = parts[1].split()[0]
+                    return int(signal_part.replace("dBm", ""))
+
+    except (subprocess.CalledProcessError, FileNotFoundError, ValueError):
+        return None
+
+    return None
+
 
 def get_system_metrics() -> dict:
     return {
@@ -40,5 +64,6 @@ def get_system_metrics() -> dict:
         "temperature_c": get_temperature_c(),
         "uptime_seconds": get_uptime_seconds(),
         "hostname": os.uname().nodename,
+        "wifi_signal_strength": get_wifi_signal_strength(),
     }
     

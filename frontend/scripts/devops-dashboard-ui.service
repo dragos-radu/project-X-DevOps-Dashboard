@@ -19,7 +19,7 @@ Environment=XDG_CONFIG_HOME=/home/dragos/.config
 Environment=QT_QPA_PLATFORM=wayland
 Environment=QT_QUICK_CONTROLS_STYLE=Basic
 
-ExecStart=/usr/bin/labwc
+ExecStart=/usr/bin/labwc -s "/opt/devops-dashboard-ui/.venv/bin/python3 /opt/devops-dashboard-ui/main.py"
 
 Restart=on-failure
 RestartSec=3
