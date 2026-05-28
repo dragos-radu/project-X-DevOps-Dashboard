@@ -5,13 +5,13 @@ import requests
 from PySide6.QtCore import QObject, Property, Signal, Slot, QTimer
 
 
-DEFAULT_BACKEND_URL = os.getenv("DEVOPS_DASHBOARD_BACKEND_URL", "http://localhost:8001")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:30080")
 
 
 class CalendarController(QObject):
     calendarChanged = Signal()
 
-    def __init__(self, backend_url: str = DEFAULT_BACKEND_URL):
+    def __init__(self, backend_url: str = BACKEND_URL):
         super().__init__()
 
         self._backend_url = backend_url.rstrip("/")

@@ -14,6 +14,7 @@ StandardOutput=journal
 StandardError=journal
 
 Environment=HOME=/home/dragos
+Environment=BACKEND_URL=http://localhost:30080
 Environment=XDG_RUNTIME_DIR=/run/user/1000
 Environment=XDG_CONFIG_HOME=/home/dragos/.config
 Environment=QT_QPA_PLATFORM=wayland

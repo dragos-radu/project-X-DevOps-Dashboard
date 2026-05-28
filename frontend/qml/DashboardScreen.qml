@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "components"
 
 Item {
     id: root
@@ -31,6 +32,67 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.preferredWidth: 5
+
+                Item {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 12
+                    anchors.topMargin: 46
+                    anchors.bottomMargin: 12
+
+                    Text {
+                        anchors.centerIn: parent
+                        visible: newsController.loading
+                        text: "Loading news..."
+                        color: "#94A3B8"
+                        font.family: "Rajdhani"
+                        font.pixelSize: 16
+                        font.bold: true
+                    }
+
+                    Text {
+                        anchors.centerIn: parent
+                        visible: !newsController.loading && !newsController.online
+                        text: "News unavailable"
+                        color: "#94A3B8"
+                        font.family: "Rajdhani"
+                        font.pixelSize: 16
+                        font.bold: true
+                    }
+
+                    Text {
+                        anchors.centerIn: parent
+                        visible: !newsController.loading && newsController.online && newsController.empty
+                        text: "No news available"
+                        color: "#94A3B8"
+                        font.family: "Rajdhani"
+                        font.pixelSize: 16
+                        font.bold: true
+                    }
+
+                    ScrollView {
+                        anchors.fill: parent
+                        visible: !newsController.loading && newsController.online && !newsController.empty
+                        clip: true
+
+                        ListView {
+                            width: parent.width
+                            spacing: 8
+                            model: newsController.items
+
+                            delegate: NewsNotificationCard {
+                                width: ListView.view.width
+                                source: modelData.source
+                                title: modelData.title
+                                summary: modelData.summary
+                                publishedAt: modelData.publishedAt
+                            }
+                        }
+                    }
+                }
             }
 
             ColumnLayout {
