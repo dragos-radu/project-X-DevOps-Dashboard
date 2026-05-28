@@ -1,8 +1,13 @@
 from fastapi import FastAPI
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
 
 from app.database import check_database_connection
 from app.routes.system_metrics import router as system_metrics_router
 from app.routes.news import router as news_router
+from app.routes.calendar import router as calendar_router
 
 app = FastAPI(
     title="DevOps Dashboard Backend",
@@ -12,6 +17,7 @@ app = FastAPI(
 
 app.include_router(system_metrics_router)
 app.include_router(news_router)
+app.include_router(calendar_router)
 
 
 @app.get("/health")
