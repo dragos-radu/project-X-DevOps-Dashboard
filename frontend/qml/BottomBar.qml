@@ -4,7 +4,7 @@ import "components"
 import "utils/WeatherIconMapper.js" as WeatherIconMapper
 
 Rectangle {
-    property int weatherCode: 0
+    property int weatherCode: weatherController ? weatherController.weatherCode : -1
 
     radius: 14
     color: "#071426"
@@ -65,7 +65,7 @@ Rectangle {
                     Image {
                         id: weatherIcon
 
-                        source: WeatherIconMapper.iconForCode(weatherCode)
+                        source: weatherController && weatherController.iconPath ? weatherController.iconPath : WeatherIconMapper.iconForCode(weatherCode)
                         visible: status === Image.Ready
                         width: 32
                         height: 32
@@ -81,7 +81,7 @@ Rectangle {
                     spacing: 0
 
                     Text {
-                        text: "24°"
+                        text: weatherController ? weatherController.temperature : "--°"
                         color: "#F8F9FA"
                         font.family: "Rajdhani"
                         font.pixelSize: 24
@@ -89,7 +89,7 @@ Rectangle {
                     }
 
                     Text {
-                        text: "Clear sky"
+                        text: weatherController ? weatherController.status : "Loading"
                         color: "#94A3B8"
                         font.family: "Rajdhani"
                         font.pixelSize: 12
@@ -105,7 +105,7 @@ Rectangle {
                     spacing: 2
 
                     Text {
-                        text: "18° / 27°"
+                        text: weatherController ? weatherController.minMax : "--° / --°"
                         color: "#CBD5E1"
                         font.family: "Rajdhani"
                         font.pixelSize: 15
@@ -113,7 +113,7 @@ Rectangle {
                     }
 
                     Text {
-                        text: "Colibași, Giurgiu"
+                        text: weatherController ? weatherController.location : "Colibași, Giurgiu"
                         color: "#94A3B8"
                         font.family: "Rajdhani"
                         font.pixelSize: 11
@@ -152,8 +152,8 @@ Rectangle {
 
                             width: 128
                             height: 30
-                            sunriseTime: "05:42"
-                            sunsetTime: "20:48"
+                            sunriseTime: weatherController ? weatherController.sunrise : "--:--"
+                            sunsetTime: weatherController ? weatherController.sunset : "--:--"
                             anchors.verticalCenter: parent.verticalCenter
                         }
 
@@ -190,7 +190,7 @@ Rectangle {
                 spacing: 1
 
                 Text {
-                    text: "Daily Sync"
+                    text: calendarController ? calendarController.firstEventName : "Loading calendar"
                     color: "#F8F9FA"
                     font.family: "Rajdhani"
                     font.pixelSize: 17
@@ -200,7 +200,7 @@ Rectangle {
                 }
 
                 Text {
-                    text: "Today 14:30"
+                    text: calendarController ? calendarController.firstEventDateTime : ""
                     color: "#94A3B8"
                     font.family: "Rajdhani"
                     font.pixelSize: 12
@@ -222,7 +222,7 @@ Rectangle {
                 spacing: 1
 
                 Text {
-                    text: "Next: Jenkins Review"
+                    text: calendarController && calendarController.secondEventName ? "Next: " + calendarController.secondEventName : "Next: --"
                     color: "#CBD5E1"
                     font.family: "Rajdhani"
                     font.pixelSize: 15
@@ -233,7 +233,7 @@ Rectangle {
                 }
 
                 Text {
-                    text: "Tomorrow 09:00"
+                    text: calendarController ? calendarController.secondEventDateTime : ""
                     color: "#94A3B8"
                     font.family: "Rajdhani"
                     font.pixelSize: 12
