@@ -213,6 +213,7 @@ pipeline {
                     kubectl apply -f k8s/database-service.yaml
                     kubectl apply -f k8s/backend-deployment.yaml
                     kubectl apply -f k8s/backend-service.yaml
+                    kubectl apply -f k8s/news-refresh-cronjob.yaml
 
                     kubectl set image deployment/backend \
                         backend=${BACKEND_IMAGE}:${BACKEND_TAG} \
