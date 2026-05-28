@@ -3,7 +3,7 @@ iCloud Calendar Integration using CalDAV
 """
 
 import os
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 import caldav
 from icalendar import Calendar
@@ -11,6 +11,16 @@ from icalendar import Calendar
 # Credentials from environment
 ICLOUD_USERNAME = os.getenv("ICLOUD_USERNAME", "")
 ICLOUD_APP_PASSWORD = os.getenv("ICLOUD_APP_PASSWORD", "")
+
+
+def _as_utc_datetime(value, tz):
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=tz)
+        return value.astimezone(tz)
+    if isinstance(value, date):
+        return datetime.combine(value, time.min, tzinfo=tz)
+    return None
 
 
 class iCloudCalendarManager:
@@ -66,43 +76,39 @@ class iCloudCalendarManager:
                 cal_events = []
                 
                 try:
-                    all_events = cal.events()
+                    all_events = cal.date_search(
+                        start=start_date,
+                        end=end_date,
+                        expand=True,
+                    )
                     
                     for event in all_events:
                         try:
                             ical = Calendar.from_ical(event.data)
                             for component in ical.walk():
                                 if component.name == "VEVENT":
-                                    event_start = component.get('DTSTART')
-                                    if event_start:
-                                        event_dt = event_start.dt
-                                        
-                                        # Convert timezone if necessary
-                                        if not hasattr(event_dt, 'tzinfo') or event_dt.tzinfo is None:
-                                            event_dt = event_dt.replace(tzinfo=tz)
-                                        else:
-                                            try:
-                                                event_dt = event_dt.astimezone(tz)
-                                            except:
-                                                pass
-                                        
-                                        # Filter by date range
-                                        if start_date <= event_dt <= end_date:
-                                            summary = component.get('SUMMARY', 'No title')
-                                            location = component.get('LOCATION', '')
-                                            dtstart = component.get('DTSTART')
-                                            dtend = component.get('DTEND')
-                                            
-                                            cal_events.append({
-                                                "title": str(summary),
-                                                "location": str(location) if location else None,
-                                                "start": str(dtstart.dt) if dtstart else None,
-                                                "end": str(dtend.dt) if dtend else None,
-                                            })
-                        except:
-                            pass
-                except:
-                    pass
+                                    dtstart = component.get("DTSTART")
+                                    if not dtstart:
+                                        continue
+
+                                    event_dt = _as_utc_datetime(dtstart.dt, tz)
+                                    if event_dt is None or not start_date <= event_dt <= end_date:
+                                        continue
+
+                                    summary = component.get("SUMMARY", "No title")
+                                    location = component.get("LOCATION", "")
+                                    dtend = component.get("DTEND")
+
+                                    cal_events.append({
+                                        "title": str(summary),
+                                        "location": str(location) if location else None,
+                                        "start": str(dtstart.dt),
+                                        "end": str(dtend.dt) if dtend else None,
+                                    })
+                        except Exception as e:
+                            print(f"Calendar event parse error: {e}")
+                except Exception as e:
+                    print(f"Calendar date search error for {cal_name}: {e}")
                 
                 if cal_events:
                     events_result.append({
