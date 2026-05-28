@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: news-refresh
+  namespace: devops-dashboard
+spec:
+  schedule: "0,30 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: news-refresh
+              image: curlimages/curl:latest
+              args:
+                - -f
+                - --max-time
+                - "60"
+                - -X
+                - POST
+                - http://backend:8000/news/refresh
