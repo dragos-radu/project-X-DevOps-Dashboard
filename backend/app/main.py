@@ -1,8 +1,15 @@
 from fastapi import FastAPI
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
 
 from app.database import check_database_connection
+from app.weather import fetch_current_weather
 from app.routes.system_metrics import router as system_metrics_router
 from app.routes.news import router as news_router
+from app.routes.calendar import router as calendar_router
+from app.routes.weather import router as weather_router
 
 app = FastAPI(
     title="DevOps Dashboard Backend",
@@ -12,6 +19,8 @@ app = FastAPI(
 
 app.include_router(system_metrics_router)
 app.include_router(news_router)
+app.include_router(calendar_router)
+app.include_router(weather_router)
 
 
 @app.get("/health")
@@ -27,6 +36,15 @@ def health_check():
 
 @app.get("/api/dashboard")
 def get_dashboard_data():
+    try:
+        weather = fetch_current_weather()
+    except Exception:
+        weather = {
+            "location": "Colibasi, Giurgiu",
+            "temperature": None,
+            "condition": "Unavailable",
+        }
+
     return {
         "system": {
             "device": "Raspberry Pi",
@@ -35,11 +53,7 @@ def get_dashboard_data():
             "temperature": "48°C",
             "wifi": "Connected",
         },
-        "weather": {
-            "location": "Colibasi, Giurgiu",
-            "temperature": "18°C",
-            "condition": "Partly cloudy",
-        },
+        "weather": weather,
         "pipelines": [
             {
                 "name": "Backend CI/CD",

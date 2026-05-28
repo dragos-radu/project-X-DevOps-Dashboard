@@ -24,17 +24,38 @@ Canvas {
     function getPoints() {
         const padding = 2
         const chartWidth = width - padding * 2
-        const chartHeight = height - padding
-        const stepX = chartWidth / (values.length - 1)
+        const chartHeight = height - padding * 2 // Changed from -padding to leave space at top/bottom
 
         let points = []
+
+        // 1. Find current min and max values from array
+        let currentMin = Math.min(...values)
+        let currentMax = Math.max(...values)
+
+        // 2. Add offset (safety margin) so chart doesn't touch extreme edges
+        // If CPU varies between 2% and 8%, chart will be scaled on this interval, not 0-100%
+        let minBound = Math.max(0, currentMin - 2) // Don't go below 0%
+        let maxBound = Math.min(100, currentMax + 2) // Don't go above 100%
+
+        // Prevent division by zero if all values are identical (e.g., CPU is constant at 5%)
+        if (minBound === maxBound) {
+            minBound = Math.max(0, minBound - 5)
+            maxBound = Math.min(100, maxBound + 5)
+        }
+
+        const stepX = chartWidth / (values.length - 1)
+        const valueRange = maxBound - minBound
 
         for (let i = 0; i < values.length; i++) {
             const value = clamp(values[i], 0, 100)
 
+            // 3. Scale value based on the dynamically determined interval
+            const normalizedValue = (value - minBound) / valueRange
+
             points.push({
                 x: padding + i * stepX,
-                y: padding + chartHeight - (value / 100) * chartHeight
+                // Invert Y axis (in QML, 0 is top, chartHeight is bottom)
+                y: padding + chartHeight - (normalizedValue * chartHeight)
             })
         }
 

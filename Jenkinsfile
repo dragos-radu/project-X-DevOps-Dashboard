@@ -37,11 +37,18 @@ pipeline {
 
         stage('Test Backend with Database using Docker Compose') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'devops-dashboard-db-creds',
-                    usernameVariable: 'POSTGRES_USER',
-                    passwordVariable: 'POSTGRES_PASSWORD'
-                )]) {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'devops-dashboard-db-creds',
+                        usernameVariable: 'POSTGRES_USER',
+                        passwordVariable: 'POSTGRES_PASSWORD'
+                    ),
+                    usernamePassword(
+                        credentialsId: 'ICLOUD_APP',
+                        usernameVariable: 'ICLOUD_USERNAME',
+                        passwordVariable: 'ICLOUD_APP_PASSWORD'
+                    )
+                ]) {
                     sh '''
                         docker compose down -v || true
 
@@ -64,6 +71,10 @@ pipeline {
 
                         echo "Checking news list endpoint..."
                         curl -f http://localhost:8001/news
+                        echo ""
+
+                        echo "Checking calendar endpoints..."
+                        curl -f http://localhost:8001/calendar/calendars
                         echo ""
 
                         docker compose down -v
@@ -110,13 +121,22 @@ pipeline {
                 }
             }
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'devops-dashboard-db-creds',
-                    usernameVariable: 'POSTGRES_USER',
-                    passwordVariable: 'POSTGRES_PASSWORD'
-                )]) {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'devops-dashboard-db-creds',
+                        usernameVariable: 'POSTGRES_USER',
+                        passwordVariable: 'POSTGRES_PASSWORD'
+                    ),
+                    usernamePassword(
+                        credentialsId: 'ICLOUD_APP',
+                        usernameVariable: 'ICLOUD_USERNAME',
+                        passwordVariable: 'ICLOUD_APP_PASSWORD'
+                    )
+                ]) {
                     sh '''
                         kubectl apply -f k8s/namespace.yaml
+
+                        set +x
 
                         kubectl delete secret database-secret \
                             -n ${K8S_NAMESPACE} \
@@ -127,6 +147,17 @@ pipeline {
                             --from-literal=POSTGRES_DB=${POSTGRES_DB} \
                             --from-literal=POSTGRES_USER=${POSTGRES_USER} \
                             --from-literal=POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+                        kubectl delete secret icloud-credentials \
+                            -n ${K8S_NAMESPACE} \
+                            --ignore-not-found
+
+                        kubectl create secret generic icloud-credentials \
+                            -n ${K8S_NAMESPACE} \
+                            --from-literal=ICLOUD_USERNAME=${ICLOUD_USERNAME} \
+                            --from-literal=ICLOUD_APP_PASSWORD=${ICLOUD_APP_PASSWORD}
+
+                        set -x
                     '''
                 }
             }

@@ -29,3 +29,5 @@ spec:
           envFrom:
             - secretRef:
                 name: database-secret
+            - secretRef:
+                name: icloud-credentials
